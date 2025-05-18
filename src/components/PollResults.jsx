@@ -1,108 +1,100 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 function PollResults() {
   const { pollId } = useParams();
   const navigate = useNavigate();
+  const [destinations, setDestinations] = useState([]);
+  const [selectedDestination, setSelectedDestination] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  // Тестовые данные о голосовании (теперь без победившего варианта)
-  const [pollData, setPollData] = useState({
-    title: "Результаты голосования",
-    options: [
-      { id: 1, name: "Вариант 1", votes: 25, image: "https://via.placeholder.com/150/FF0000/FFFFFF?Text=Вариант1" },
-      { id: 2, name: "Вариант 2", votes: 30, image: "https://via.placeholder.com/150/00FF00/FFFFFF?Text=Вариант2" },
-      { id: 3, name: "Вариант 3", votes: 20, image: "https://via.placeholder.com/150/0000FF/FFFFFF?Text=Вариант3" },
-      { id: 4, name: "Вариант 4", votes: 25, image: "https://via.placeholder.com/150/FFFF00/000000?Text=Вариант4" },
-    ],
-    participants: [
-      { id: 1, name: "Имя Фамилия 1", hasVoted: true },
-      { id: 2, name: "Имя Фамилия 2", hasVoted: false },
-      { id: 3, name: "Имя Фамилия 3", hasVoted: true },
-    ],
-  });
-
-  const getProgressBarStyle = (votes) => {
-    const totalVotes = pollData.options.reduce((sum, option) => sum + option.votes, 0);
-    const percentage = totalVotes > 0 ? (votes / totalVotes) * 100 : 0;
-    return {
-      width: `${percentage}%`,
-      backgroundColor: '#4CAF50',
-      height: '10px',
-      borderRadius: '5px',
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Получаем рекомендованные направления
+        const response = await axios.get(`/api/destinations/recommendations/${pollId}`);
+        setDestinations(response.data);
+      } catch (err) {
+        setError('Ошибка загрузки данных');
+        console.error(err);
+      } finally {
+        setIsLoading(false);
+      }
     };
+
+    fetchData();
+  }, [pollId]);
+
+  const handleVote = async () => {
+    if (!selectedDestination) {
+      setError('Пожалуйста, выберите вариант');
+      return;
+    }
+
+    try {
+      await axios.post('/api/votes', {
+        votingId: pollId,
+        destinationId: selectedDestination,
+        userId: localStorage.getItem('userId')
+      });
+      navigate(`/polls/${pollId}/results`);
+    } catch (err) {
+      setError('Ошибка при голосовании');
+      console.error(err);
+    }
   };
 
-  const handleViewResults = () => {
-    // Здесь будет логика завершения голосования на бэкенде
-    // После этого перенаправляем на страницу предварительных результатов
-    navigate("/preliminary-results");
-  };
+  if (isLoading) {
+    return <div className="text-center py-8">Загрузка...</div>;
+  }
+
+  if (error) {
+    return <div className="text-center text-red-500 py-8">{error}</div>;
+  }
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md">
-      <h2 className="text-xl font-bold mb-4">{pollData.title}</h2>
+    <div className="max-w-4xl mx-auto p-4">
+      <h1 className="text-2xl font-bold text-center mb-8">Выберите направление</h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Левая колонка: Результаты голосования */}
-        <div>
-          <h3 className="text-lg font-semibold mb-3">Голосование</h3>
-          <div className="space-y-3">
-            {pollData.options.map((option) => (
-              <div key={option.id} className="flex items-center">
-                <span className="w-24 font-semibold">{option.name}</span>
-                <div className="bg-gray-200 rounded-full h-2.5 w-full mr-2">
-                  <div style={getProgressBarStyle(option.votes)} className="rounded-full h-2.5"></div>
-                </div>
-                <span className="text-sm text-gray-500">{Math.round((option.votes / pollData.options.reduce((sum, opt) => sum + opt.votes, 0)) * 100)}%</span>
-              </div>
-            ))}
-            <button onClick={handleViewResults} className="mt-4 bg-red-500 hover:bg-red-600 text-white font-semibold px-4 py-2 rounded shadow">
-              {/* TODO: api /closePoll */}
-              Завершить голосование
-            </button>
-          </div>
-        </div>
-
-        {/* Правая колонка: Участники */}
-        <div>
-          <h3 className="text-lg font-semibold mb-3">Участники</h3>
-          <ul className="space-y-2">
-            <li className="grid grid-cols-2 gap-4 font-semibold">
-              <span>Имя</span>
-              <span className="text-right">Статус</span>
-            </li>
-            {pollData.participants.map((participant) => (
-              <li key={participant.id} className="grid grid-cols-2 gap-4">
-                <span>{participant.name}</span>
-                <span className="text-right text-gray-600">{participant.hasVoted ? 'Проголосовал' : 'Не голосовал'}</span>
-              </li>
-            ))}
-          </ul>
-          <button className="mt-4 bg-blue-300 hover:bg-blue-400 text-white font-semibold px-4 py-2 rounded shadow">
-            {/* TODO: api /getFriends */}
-            Добавить друга
-          </button>
-        </div>
-      </div>
-
-      <div className="mt-8">
-        <h3 className="text-lg font-semibold mb-3">Варианты</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-          {pollData.options.map((option) => (
-            <div key={option.id} className="bg-gray-100 rounded-lg shadow-sm overflow-hidden">
-              {option.image && (
-                <img src={option.image} alt={option.name} className="w-full h-32 object-cover" />
-              )}
-              <div className="p-3">
-                <div className="font-semibold text-center">{option.name}</div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        {destinations.map(destination => (
+          <div
+            key={destination.id}
+            className={`border rounded-lg overflow-hidden cursor-pointer transition-all
+              ${selectedDestination === destination.id ? 'ring-4 ring-blue-500' : 'hover:shadow-md'}`}
+            onClick={() => setSelectedDestination(destination.id)}
+          >
+            <img
+              src={destination.imageUrl || 'https://via.placeholder.com/300x200'}
+              alt={destination.name}
+              className="w-full h-48 object-cover"
+            />
+            <div className="p-4">
+              <h3 className="font-bold text-lg">{destination.name}</h3>
+              <p className="text-gray-600 mt-2">{destination.description}</p>
+              <div className="mt-4 flex justify-between items-center">
+                <span className="text-sm text-gray-500">
+                  Бюджет: {destination.budgetCategory === 'low' ? 'Низкий' :
+                           destination.budgetCategory === 'medium' ? 'Средний' : 'Высокий'}
+                </span>
               </div>
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
       </div>
 
-      <div className="mt-8 text-center">
-        <Link to="/" className="text-blue-500 hover:underline">Вернуться на главную</Link>
+      {error && <div className="text-red-500 text-center mb-4">{error}</div>}
+
+      <div className="text-center">
+        <button
+          onClick={handleVote}
+          disabled={!selectedDestination}
+          className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded disabled:opacity-50"
+        >
+          Проголосовать
+        </button>
       </div>
     </div>
   );

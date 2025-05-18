@@ -1,6 +1,9 @@
 import RoomCard from "./RoomCard";
+import axios from 'axios';
 
 // TODO: api /getRooms
+
+//const rooms = axios.get("/api/votings/get?id={}")
 
 const dummyRooms = [
   {

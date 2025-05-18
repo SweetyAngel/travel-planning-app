@@ -6,12 +6,17 @@ function Question1() {
   const navigate = useNavigate();
 
   const handleSubmit = () => {
-    if (selectedOption) {
-      navigate("/question2");
-    } else {
-      alert("Пожалуйста, выберите вариант ответа.");
-    }
-  };
+  if (selectedOption) {
+    // Получаем текущие query параметры
+    const searchParams = new URLSearchParams(window.location.search);
+    // Добавляем наш ответ
+    searchParams.set('q1', selectedOption);
+    // Переходим на следующий вопрос с сохраненными ответами
+    navigate(`/question2?${searchParams.toString()}`);
+  } else {
+    alert("Пожалуйста, выберите вариант ответа.");
+  }
+};
 
   return (
     <div className="bg-white p-4 rounded-lg shadow-md">

@@ -16,22 +16,28 @@ import RegistrationModal from "./components/RegistrationModal";
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null); // Добавляем состояние для текущего пользователя
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isRegistrationModalOpen, setIsRegistrationModalOpen] = useState(false);
 
-  const handleLoginSuccess = () => {
+  const handleLoginSuccess = async () => {
     setIsLoggedIn(true);
     setIsLoginModalOpen(false);
+    // Здесь можно добавить запрос для получения информации о текущем пользователе
+    // const response = await axios.get(`/api/users/get?id=${userId}`);
+    // setCurrentUser(response.data);
   };
 
-  const handleRegistrationSuccess = () => {
+  const handleRegistrationSuccess = async () => {
     setIsLoggedIn(true);
     setIsRegistrationModalOpen(false);
     closeLoginModal();
+    // Аналогично можно получить информацию о новом пользователе
   };
 
   const handleLogout = () => {
     setIsLoggedIn(false);
+    setCurrentUser(null);
   };
 
   const openLoginModal = () => {
